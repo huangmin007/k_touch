@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <errno.h>
 
@@ -18,7 +19,11 @@ TCPClient::TCPClient()
 	if(sockfd == -1)
 	{
 		perror("scoket error...1");
+		return;
 	}
+
+	int flags = fcntl(sockfd, F_GETFL, 0);
+	fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);	
 
 	printf("sockfd %d\n", sockfd);
 }
@@ -50,6 +55,8 @@ int TCPClient::Connect(char *addr, uint16_t port)
 			perror("socket init bad ... \n");
 			return -1;
 		}
+		int flags = fcntl(sockfd, F_GETFL, 0);
+		fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);	
 	}
 	if(connected)	return 1;
 

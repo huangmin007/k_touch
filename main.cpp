@@ -16,12 +16,14 @@
 #include <signal.h>
 #include <string.h>
 
-#include "TCPServer.h"
+#include "TCPClient.h"
 
+#define PORT 10088 
 
+//int id = -1;
 int running = 1;
-TCPServer server;
-
+TCPClient client;
+pthread_t pt_id;
 
 void ctrl_c_handler(int signum)
 {
@@ -43,6 +45,8 @@ void setup_sigaction()
 
 static void *GetAbsPosition(void *args)
 {
+	int id = *(int*)args;
+
 	Window root = 0;
 	Window window = 0;
 	Display *display = XOpenDisplay(0);
@@ -51,8 +55,8 @@ static void *GetAbsPosition(void *args)
 	int dummy_int = 0;
 	unsigned int dummy_uint = 0;
 
-	char res[32];
-	uint8_t buf[30];
+	char res[64];
+	uint8_t buf[3];
 
 	int fd = open("/dev/input/mouse0", O_RDONLY);
 	if(fd < 0)
@@ -69,10 +73,10 @@ static void *GetAbsPosition(void *args)
 				&root, &window, &x, &y, &dummy_int, &dummy_int, &dummy_uint);
 			if(ret <= 0)	continue;
 
-			sprintf(res, "{\"type\":0x%02x, \"rx\":%d, \"ry\":%d, \"ax\":%d, \"ay\":%d}\r\n", buf[0], buf[1], buf[2], x, y); 
+			sprintf(res, "{\"id\":%d, \"type\":0x%02x, \"rx\":%d, \"ry\":%d, \"ax\":%d, \"ay\":%d}\r\n", id, buf[0], buf[1], buf[2], x, y); 
 			printf("%s", res);
 
-			server.Send((uint8_t*)res, strlen(res));
+			client.Send((uint8_t*)res, strlen(res));
 			usleep(30 * 1000);
 		}
 		//usleep(30 * 1000);
@@ -83,13 +87,27 @@ static void *GetAbsPosition(void *args)
 int main(int argc, char *argv[])
 {
 	setup_sigaction();
-	printf("start ... \n");
+	if(argc != 3)
+	{
+		perror("args error ...\n");
+		printf("0:cleint index\n1:server ip address\n");
 
-	server.Bind(5000);
-	server.Start();
+		client.Close();
+		exit(1);
+	}
+	
+	int id = atoi(argv[1]);
+	char *addr = (char*)argv[2];
 
-	pthread_t pt_id;
-    int ret	= pthread_create(&pt_id, NULL, GetAbsPosition, NULL);
+	for(int i = 0; i < argc; i ++)
+	{
+		printf("argv:%d %s\n", i, argv[i]);
+	}
+	
+	uint32_t wait_count = 0;
+	client.Connect(addr, PORT);
+
+    int ret	= pthread_create(&pt_id, NULL, GetAbsPosition, &id);
 	if(ret != 0)
 	{
 		printf("get abs position pthread start failed ... \n");
@@ -98,10 +116,20 @@ int main(int argc, char *argv[])
 
 	while(running)
 	{
+		if(wait_count == 3)
+		{
+			wait_count = 0;
+			client.Connect(addr, PORT);
+		}
+
 		sleep(1);
+		if(!client.Connected())
+			wait_count ++;
+		else
+			wait_count = 0;
 	}
 
-	server.Stop();
+	client.Close();
 	pthread_cancel(pt_id);
 	
 	return 0;
