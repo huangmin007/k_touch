@@ -12,6 +12,8 @@
 #include <pthread.h>
 #include <errno.h>
 
+#define USE_NONBLOCK fasle
+
 
 TCPClient::TCPClient()
 {
@@ -21,10 +23,10 @@ TCPClient::TCPClient()
 		perror("scoket error...1");
 		return;
 	}
-
+#if USE_NONBLOCK
 	int flags = fcntl(sockfd, F_GETFL, 0);
 	fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);	
-
+#endif
 	printf("sockfd %d\n", sockfd);
 }
 
@@ -55,8 +57,10 @@ int TCPClient::Connect(char *addr, uint16_t port)
 			perror("socket init bad ... \n");
 			return -1;
 		}
+#if USE_NONBLOCK
 		int flags = fcntl(sockfd, F_GETFL, 0);
 		fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);	
+#endif
 	}
 	if(connected)	return 1;
 

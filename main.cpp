@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 			client.Connect(addr, PORT);
 		}
 
-		sleep(1);
+		sleep(2);
 		if(!client.Connected())
 			wait_count ++;
 		else
