@@ -1,7 +1,7 @@
-/****************************************88
+/****************************************
+ *	
  *	2019/06/11
- *	gcc -o main test.c -lX11
- *
+ *	k区 touch
  *
  */ 
 
@@ -19,6 +19,7 @@
 #include "TCPClient.h"
 
 #define PORT 10088 
+#define DELAY_MS	17000	
 
 //int id = -1;
 int running = 1;
@@ -73,13 +74,12 @@ static void *GetAbsPosition(void *args)
 				&root, &window, &x, &y, &dummy_int, &dummy_int, &dummy_uint);
 			if(ret <= 0)	continue;
 
-			sprintf(res, "{\"id\":%d, \"type\":0x%02x, \"rx\":%d, \"ry\":%d, \"ax\":%d, \"ay\":%d}\r\n", id, buf[0], buf[1], buf[2], x, y); 
+			sprintf(res, "{\"id\":%d, \"type\":%02x, \"rx\":%d, \"ry\":%d, \"ax\":%d, \"ay\":%d}\r\n", id, buf[0], buf[1], buf[2], x, y); 
 			printf("%s", res);
 
 			client.Send((uint8_t*)res, strlen(res));
-			usleep(30 * 1000);
+			usleep(DELAY_MS);
 		}
-		//usleep(30 * 1000);
 	}
 }
 
